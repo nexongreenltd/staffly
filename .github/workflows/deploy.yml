@@ -1,0 +1,183 @@
+name: Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PROJECT_ID: maretinda-test
+  REGION: asia-south1
+  REGISTRY: asia-south1-docker.pkg.dev
+  AR_REPO: staffly
+
+jobs:
+  # ── Build jobs run in parallel ──────────────────────────────
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/backend:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/backend:latest \
+            apps/backend
+
+      - name: Push image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/backend:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/backend:latest
+
+      - id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  build-worker:
+    name: Build & Push Worker
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:latest \
+            apps/worker
+
+      - name: Push image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:latest
+
+      - id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  # ── Deploy backend (with migrations) ───────────────────────
+  deploy-backend:
+    name: Migrate & Deploy Backend
+    runs-on: ubuntu-latest
+    needs: build-backend
+    steps:
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run database migrations
+        run: |
+          IMAGE="${{ needs.build-backend.outputs.image }}"
+          CLOUD_SQL="${{ env.PROJECT_ID }}:${{ env.REGION }}:staffly-db"
+          DB_SOCKET="/cloudsql/${CLOUD_SQL}"
+
+          ENV_VARS="DB_HOST=${DB_SOCKET},DB_PORT=5432,DB_USER=hrm_user,DB_NAME=terraprime_hrm,DB_PASS=${{ secrets.DB_PASS }},NODE_ENV=production"
+
+          # Create or update the migration job
+          if gcloud run jobs describe staffly-migrate --region=${{ env.REGION }} --quiet 2>/dev/null; then
+            gcloud run jobs update staffly-migrate \
+              --image="${IMAGE}" \
+              --region=${{ env.REGION }} \
+              --set-env-vars="${ENV_VARS}" \
+              --add-cloudsql-instances="${CLOUD_SQL}"
+          else
+            gcloud run jobs create staffly-migrate \
+              --image="${IMAGE}" \
+              --region=${{ env.REGION }} \
+              --command="npm" \
+              --args="run,migration:run" \
+              --set-env-vars="${ENV_VARS}" \
+              --add-cloudsql-instances="${CLOUD_SQL}"
+          fi
+
+          gcloud run jobs execute staffly-migrate --region=${{ env.REGION }} --wait
+
+      - name: Deploy backend service
+        run: |
+          CLOUD_SQL="${{ env.PROJECT_ID }}:${{ env.REGION }}:staffly-db"
+          DB_SOCKET="/cloudsql/${CLOUD_SQL}"
+
+          gcloud run deploy staffly-backend \
+            --image="${{ needs.build-backend.outputs.image }}" \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=3001 \
+            --add-cloudsql-instances="${CLOUD_SQL}" \
+            --set-env-vars="NODE_ENV=production,\
+          PORT=3001,\
+          DB_HOST=${DB_SOCKET},\
+          DB_PORT=5432,\
+          DB_USER=hrm_user,\
+          DB_NAME=terraprime_hrm,\
+          DB_PASS=${{ secrets.DB_PASS }},\
+          DB_SSL=false,\
+          REDIS_HOST=${{ secrets.REDIS_HOST }},\
+          REDIS_PORT=6379,\
+          JWT_SECRET=${{ secrets.JWT_SECRET }},\
+          JWT_EXPIRES_IN=7d,\
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
+
+  # ── Deploy worker ───────────────────────────────────────────
+  deploy-worker:
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    needs: [build-worker, deploy-backend]
+    steps:
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy worker service
+        run: |
+          CLOUD_SQL="${{ env.PROJECT_ID }}:${{ env.REGION }}:staffly-db"
+          DB_SOCKET="/cloudsql/${CLOUD_SQL}"
+
+          gcloud run deploy staffly-worker \
+            --image="${{ needs.build-worker.outputs.image }}" \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --no-allow-unauthenticated \
+            --add-cloudsql-instances="${CLOUD_SQL}" \
+            --set-env-vars="NODE_ENV=production,\
+          DB_HOST=${DB_SOCKET},\
+          DB_PORT=5432,\
+          DB_USER=hrm_user,\
+          DB_NAME=terraprime_hrm,\
+          DB_PASS=${{ secrets.DB_PASS }},\
+          DB_SSL=false,\
+          REDIS_HOST=${{ secrets.REDIS_HOST }},\
+          REDIS_PORT=6379,\
+          SCHEDULER_INTERVAL_MS=300000,\
+          DEVICE_TIMEOUT_MS=10000,\
+          MAX_DEVICE_RETRIES=3,\
+          LOG_LEVEL=info"
