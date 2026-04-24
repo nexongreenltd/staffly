@@ -7,7 +7,7 @@ INSERT INTO users (id, email, password_hash, role)
 VALUES (
   uuid_generate_v4(),
   'superadmin@staffly.io',
-  crypt('Admin@123', gen_salt('bf', 10)),
+  '$2b$10$vhpZfEX9FiIw6uj.falUiOLyyyAwXZcqzH9zxna5I45517v/Mo34G',
   'superadmin'
 );
 
@@ -27,7 +27,7 @@ VALUES (
   uuid_generate_v4(),
   '00000000-0000-0000-0000-000000000001',
   'admin@acme.com',
-  crypt('Admin@123', gen_salt('bf', 10)),
+  '$2b$10$vhpZfEX9FiIw6uj.falUiOLyyyAwXZcqzH9zxna5I45517v/Mo34G',
   'company_admin'
 );
 
