@@ -39,7 +39,7 @@ docker-compose up -d
 ### Default Credentials
 | Role           | Email                    | Password   |
 |----------------|--------------------------|------------|
-| Super Admin    | superadmin@terraprime.io | Admin@123  |
+| Super Admin    | superadmin@staffly.io | Admin@123  |
 | Company Admin  | admin@acme.com           | Admin@123  |
 
 ---
@@ -279,7 +279,7 @@ ZKTeco K40, F22, UA300, and any device supporting the ZKTeco binary TCP SDK on p
 - All database tables include `company_id`
 - `TenantMiddleware` extracts company slug from:
   1. `X-Company-Slug` request header
-  2. Subdomain (e.g., `acme.terraprime.io`)
+  2. Subdomain (e.g., `acme.staffly.io`)
 - JWT payload includes `companyId`
 - All service queries are scoped to `companyId`
 - TypeORM never leaks cross-tenant data
