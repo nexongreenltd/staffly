@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +17,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPass, setShowPass] = useState(false);
@@ -49,9 +49,59 @@ export default function LoginPage() {
   };
 
   return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div>
+        <label className="label">Email address</label>
+        <input
+          type="email"
+          placeholder="admin@company.com"
+          className="input"
+          autoComplete="email"
+          {...register('email')}
+        />
+        {errors.email && (
+          <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="label">Password</label>
+        <div className="relative">
+          <input
+            type={showPass ? 'text' : 'password'}
+            placeholder="••••••••"
+            className="input pr-10"
+            autoComplete="current-password"
+            {...register('password')}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            onClick={() => setShowPass(!showPass)}
+          >
+            {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        {errors.password && (
+          <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+        )}
+      </div>
+
+      <button type="submit" className="btn-primary w-full py-2.5" disabled={loading}>
+        {loading ? (
+          <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
+        ) : (
+          'Sign in'
+        )}
+      </button>
+    </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-white px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600 mb-4">
             <Fingerprint className="w-8 h-8 text-white" />
@@ -60,54 +110,10 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
-        {/* Form */}
         <div className="card p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div>
-              <label className="label">Email address</label>
-              <input
-                type="email"
-                placeholder="admin@company.com"
-                className="input"
-                autoComplete="email"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  className="input pr-10"
-                  autoComplete="current-password"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                  onClick={() => setShowPass(!showPass)}
-                >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <button type="submit" className="btn-primary w-full py-2.5" disabled={loading}>
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Signing in...</>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </form>
+          <Suspense fallback={<div className="h-48" />}>
+            <LoginForm />
+          </Suspense>
 
           <div className="mt-6 pt-6 border-t border-gray-100 text-center">
             <p className="text-xs text-gray-400">

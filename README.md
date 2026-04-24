@@ -1,4 +1,4 @@
-# TerraPrime HRM
+# Staffly
 
 > Production-ready multi-tenant SaaS HRM/ERP with biometric attendance (ZKTeco K40 and compatible devices).
 
