@@ -104,7 +104,6 @@ jobs:
             --port=3001 \
             --set-cloudsql-instances="${CLOUD_SQL}" \
             --set-env-vars="NODE_ENV=production,\
-          PORT=3001,\
           DB_HOST=${DB_SOCKET},\
           DB_PORT=5432,\
           DB_USER=postgres,\
