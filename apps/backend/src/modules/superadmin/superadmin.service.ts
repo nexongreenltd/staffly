@@ -79,8 +79,8 @@ export class SuperadminService {
     }
     const [companies, total] = await qb
       .orderBy('c.created_at', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
+      .offset((page - 1) * limit)
+      .limit(limit)
       .getManyAndCount();
 
     // Attach employee + device counts per company

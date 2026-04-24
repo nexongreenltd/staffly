@@ -206,8 +206,8 @@ export class AttendanceService {
 
     const [data, total] = await qb
       .orderBy('emp.first_name', 'ASC')
-      .skip((page - 1) * limit)
-      .take(limit)
+      .offset((page - 1) * limit)
+      .limit(limit)
       .getManyAndCount();
 
     // Summary stats

@@ -60,8 +60,12 @@ export class EmployeesService {
       this.logger.log(`Created user account for employee ${employee.id}`);
     }
 
-    // Queue push to all company devices
-    await this.deviceSyncProducer.addPushUserJob(companyId, employee.id);
+    // Queue push to all company devices (non-blocking — no devices is fine)
+    try {
+      await this.deviceSyncProducer.addPushUserJob(companyId, employee.id);
+    } catch (err) {
+      this.logger.warn(`Could not queue device sync for employee ${employee.id}: ${(err as Error).message}`);
+    }
 
     return employee;
   }
@@ -91,8 +95,8 @@ export class EmployeesService {
 
     const [data, total] = await qb
       .orderBy('e.created_at', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit)
+      .offset((page - 1) * limit)
+      .limit(limit)
       .getManyAndCount();
 
     return { data, total, page, limit };
