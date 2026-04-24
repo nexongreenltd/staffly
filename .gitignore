@@ -36,3 +36,9 @@ Thumbs.db
 
 # Docker volumes / data
 database/data/
+
+# GCP service account keys — never commit these
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json

@@ -8,7 +8,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                         TerraPrime HRM                       │
+│                         Staffly                       │
 ├──────────────┬──────────────────┬──────────────┬────────────┤
 │  Frontend    │    Backend API   │    Worker    │  Database  │
 │  Next.js 14  │    NestJS        │  Node.js     │ PostgreSQL │
@@ -78,7 +78,7 @@ npm run dev
 ## Project Structure
 
 ```
-terraprime-hrm/
+staffly/
 ├── apps/
 │   ├── backend/                    # NestJS API
 │   │   └── src/
