@@ -45,7 +45,11 @@ export class TenantMiddleware implements NestMiddleware {
   }
 
   private extractSlugFromHost(hostname: string): string | null {
-    // e.g. acme.staffly.io → 'acme'
+    // Only extract slug from custom domains, e.g. acme.staffly.io → 'acme'
+    // Ignore cloud infra hostnames like *.run.app, localhost, plain IPs
+    const ignored = ['run.app', 'localhost', 'vercel.app', 'railway.app'];
+    if (ignored.some((suffix) => hostname.endsWith(suffix))) return null;
+    if (/^[\d.]+$/.test(hostname)) return null; // plain IP
     const parts = hostname.split('.');
     if (parts.length >= 3) return parts[0];
     return null;
