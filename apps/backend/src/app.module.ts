@@ -33,7 +33,7 @@ import { Company } from './database/entities/company.entity';
         password: cfg.get('DB_PASS', 'postgres'),
         database: cfg.get('DB_NAME', 'terraprime_hrm'),
         entities: [__dirname + '/database/entities/*.entity{.ts,.js}'],
-        synchronize: false,        // use migrations in production
+        synchronize: cfg.get('DB_SYNC', 'false') === 'true',
         logging: cfg.get('DB_LOGGING', 'false') === 'true',
         ssl: cfg.get('DB_SSL', 'false') === 'true' ? { rejectUnauthorized: false } : false,
       }),

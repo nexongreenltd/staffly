@@ -78,9 +78,9 @@ jobs:
       - id: image
         run: echo "image=${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/worker:${{ github.sha }}" >> $GITHUB_OUTPUT
 
-  # ── Deploy backend (with migrations) ───────────────────────
+  # ── Deploy backend ──────────────────────────────────────────
   deploy-backend:
-    name: Migrate & Deploy Backend
+    name: Deploy Backend
     runs-on: ubuntu-latest
     needs: build-backend
     steps:
@@ -90,33 +90,6 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Run database migrations
-        run: |
-          IMAGE="${{ needs.build-backend.outputs.image }}"
-          CLOUD_SQL="${{ env.PROJECT_ID }}:${{ env.REGION }}:staffly-db"
-          DB_SOCKET="/cloudsql/${CLOUD_SQL}"
-
-          ENV_VARS="DB_HOST=${DB_SOCKET},DB_PORT=5432,DB_USER=postgres,DB_NAME=terraprime_hrm,DB_PASS=${{ secrets.DB_PASS }},NODE_ENV=production"
-
-          # Create or update the migration job
-          if gcloud run jobs describe staffly-migrate --region=${{ env.REGION }} --quiet 2>/dev/null; then
-            gcloud run jobs update staffly-migrate \
-              --image="${IMAGE}" \
-              --region=${{ env.REGION }} \
-              --set-env-vars="${ENV_VARS}" \
-              --set-cloudsql-instances="${CLOUD_SQL}"
-          else
-            gcloud run jobs create staffly-migrate \
-              --image="${IMAGE}" \
-              --region=${{ env.REGION }} \
-              --command="npm" \
-              --args="run,migration:run" \
-              --set-env-vars="${ENV_VARS}" \
-              --set-cloudsql-instances="${CLOUD_SQL}"
-          fi
-
-          gcloud run jobs execute staffly-migrate --region=${{ env.REGION }} --wait
 
       - name: Deploy backend service
         run: |
@@ -138,6 +111,7 @@ jobs:
           DB_NAME=terraprime_hrm,\
           DB_PASS=${{ secrets.DB_PASS }},\
           DB_SSL=false,\
+          DB_SYNC=true,\
           REDIS_HOST=${{ secrets.REDIS_HOST }},\
           REDIS_PORT=6379,\
           JWT_SECRET=${{ secrets.JWT_SECRET }},\
