@@ -105,7 +105,7 @@ jobs:
               --image="${IMAGE}" \
               --region=${{ env.REGION }} \
               --set-env-vars="${ENV_VARS}" \
-              --add-cloudsql-instances="${CLOUD_SQL}"
+              --set-cloudsql-instances="${CLOUD_SQL}"
           else
             gcloud run jobs create staffly-migrate \
               --image="${IMAGE}" \
@@ -113,7 +113,7 @@ jobs:
               --command="npm" \
               --args="run,migration:run" \
               --set-env-vars="${ENV_VARS}" \
-              --add-cloudsql-instances="${CLOUD_SQL}"
+              --set-cloudsql-instances="${CLOUD_SQL}"
           fi
 
           gcloud run jobs execute staffly-migrate --region=${{ env.REGION }} --wait
@@ -129,7 +129,7 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --port=3001 \
-            --add-cloudsql-instances="${CLOUD_SQL}" \
+            --set-cloudsql-instances="${CLOUD_SQL}" \
             --set-env-vars="NODE_ENV=production,\
           PORT=3001,\
           DB_HOST=${DB_SOCKET},\
@@ -167,7 +167,7 @@ jobs:
             --region=${{ env.REGION }} \
             --platform=managed \
             --no-allow-unauthenticated \
-            --add-cloudsql-instances="${CLOUD_SQL}" \
+            --set-cloudsql-instances="${CLOUD_SQL}" \
             --set-env-vars="NODE_ENV=production,\
           DB_HOST=${DB_SOCKET},\
           DB_PORT=5432,\
