@@ -32,7 +32,7 @@ import { Company } from './database/entities/company.entity';
         username: cfg.get('DB_USER', 'postgres'),
         password: cfg.get('DB_PASS', 'postgres'),
         database: cfg.get('DB_NAME', 'terraprime_hrm'),
-        entities: [__dirname + '/database/entities/*.entity.js'],
+        autoLoadEntities: true,
         synchronize: cfg.get('DB_SYNC', 'false') === 'true',
         logging: cfg.get('DB_LOGGING', 'false') === 'true',
         ssl: cfg.get('DB_SSL', 'false') === 'true' ? { rejectUnauthorized: false } : false,
