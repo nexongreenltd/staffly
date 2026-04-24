@@ -7,6 +7,7 @@
  *   3. AttendanceProcessorWorker: processes raw logs into daily_attendance
  */
 
+import http from 'http';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { query, getPool } from './db/db';
@@ -125,9 +126,18 @@ async function bootstrap() {
     `⏱  Scheduler running every ${config.worker.schedulerIntervalMs / 60000} minutes`,
   );
 
+  // ─── Health server (required by Cloud Run) ────────────────────────────────────
+  const port = process.env.PORT || 8080;
+  const server = http.createServer((_, res) => {
+    res.writeHead(200);
+    res.end('ok');
+  });
+  server.listen(port, () => logger.info(`Health server listening on port ${port}`));
+
   // ─── Graceful shutdown ────────────────────────────────────────────────────────
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully...`);
+    server.close();
     await schedulerQueue.close();
     await getPool().end();
     process.exit(0);
