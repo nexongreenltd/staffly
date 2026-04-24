@@ -17,15 +17,6 @@ import { SuperadminModule } from './modules/superadmin/superadmin.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { Company } from './database/entities/company.entity';
-import { User } from './database/entities/user.entity';
-import { Employee } from './database/entities/employee.entity';
-import { Department } from './database/entities/department.entity';
-import { Device } from './database/entities/device.entity';
-import { DeviceEmployeeMap } from './database/entities/device-employee-map.entity';
-import { Shift } from './database/entities/shift.entity';
-import { AttendanceLog } from './database/entities/attendance-log.entity';
-import { DailyAttendance } from './database/entities/daily-attendance.entity';
-import { AuditLog } from './database/entities/audit-log.entity';
 
 @Module({
   imports: [
@@ -41,7 +32,7 @@ import { AuditLog } from './database/entities/audit-log.entity';
         username: cfg.get('DB_USER', 'postgres'),
         password: cfg.get('DB_PASS', 'postgres'),
         database: cfg.get('DB_NAME', 'terraprime_hrm'),
-        entities: [Company, User, Employee, Department, Device, DeviceEmployeeMap, Shift, AttendanceLog, DailyAttendance, AuditLog],
+        entities: [__dirname + '/database/entities/*.entity.js'],
         synchronize: cfg.get('DB_SYNC', 'false') === 'true',
         logging: cfg.get('DB_LOGGING', 'false') === 'true',
         ssl: cfg.get('DB_SSL', 'false') === 'true' ? { rejectUnauthorized: false } : false,
