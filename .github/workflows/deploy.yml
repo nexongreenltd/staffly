@@ -97,7 +97,7 @@ jobs:
           CLOUD_SQL="${{ env.PROJECT_ID }}:${{ env.REGION }}:staffly-db"
           DB_SOCKET="/cloudsql/${CLOUD_SQL}"
 
-          ENV_VARS="DB_HOST=${DB_SOCKET},DB_PORT=5432,DB_USER=hrm_user,DB_NAME=terraprime_hrm,DB_PASS=${{ secrets.DB_PASS }},NODE_ENV=production"
+          ENV_VARS="DB_HOST=${DB_SOCKET},DB_PORT=5432,DB_USER=postgres,DB_NAME=terraprime_hrm,DB_PASS=${{ secrets.DB_PASS }},NODE_ENV=production"
 
           # Create or update the migration job
           if gcloud run jobs describe staffly-migrate --region=${{ env.REGION }} --quiet 2>/dev/null; then
@@ -134,7 +134,7 @@ jobs:
           PORT=3001,\
           DB_HOST=${DB_SOCKET},\
           DB_PORT=5432,\
-          DB_USER=hrm_user,\
+          DB_USER=postgres,\
           DB_NAME=terraprime_hrm,\
           DB_PASS=${{ secrets.DB_PASS }},\
           DB_SSL=false,\
@@ -171,7 +171,7 @@ jobs:
             --set-env-vars="NODE_ENV=production,\
           DB_HOST=${DB_SOCKET},\
           DB_PORT=5432,\
-          DB_USER=hrm_user,\
+          DB_USER=postgres,\
           DB_NAME=terraprime_hrm,\
           DB_PASS=${{ secrets.DB_PASS }},\
           DB_SSL=false,\
