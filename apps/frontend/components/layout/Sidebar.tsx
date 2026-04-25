@@ -4,23 +4,26 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Monitor, CalendarCheck, Clock,
-  Building2, LogOut, Fingerprint, ChevronRight,
+  LogOut, Fingerprint, ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { clearAuth } from '@/lib/auth';
+import { clearAuth, getUser } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
-const NAV = [
-  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/employees',  label: 'Employees',  icon: Users },
-  { href: '/devices',    label: 'Devices',    icon: Monitor },
-  { href: '/attendance', label: 'Attendance', icon: CalendarCheck },
-  { href: '/shifts',     label: 'Shifts',     icon: Clock },
+const ALL_NAV = [
+  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['company_admin', 'employee'] },
+  { href: '/employees',  label: 'Employees',  icon: Users,           roles: ['company_admin'] },
+  { href: '/devices',    label: 'Devices',    icon: Monitor,         roles: ['company_admin'] },
+  { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['company_admin', 'employee'] },
+  { href: '/shifts',     label: 'Shifts',     icon: Clock,           roles: ['company_admin'] },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const user = getUser();
+  const role = user?.role ?? 'employee';
+  const NAV = ALL_NAV.filter((item) => item.roles.includes(role));
 
   const handleLogout = () => {
     clearAuth();
