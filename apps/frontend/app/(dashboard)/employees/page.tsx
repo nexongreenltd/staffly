@@ -6,19 +6,27 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import {
   Plus, Search, Pencil, Trash2, Loader2, Fingerprint,
+  UserCheck, UserX, AlertTriangle,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { employeesApi, shiftsApi, departmentsApi } from '@/lib/api';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
+
+type ActionModal =
+  | { type: 'deactivate'; emp: any }
+  | { type: 'activate';   emp: any }
+  | { type: 'terminate';  emp: any }
+  | null;
 
 export default function EmployeesPage() {
   const qc = useQueryClient();
-  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editEmployee, setEditEmployee] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [actionModal, setActionModal] = useState<ActionModal>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['employees', page, search],
@@ -26,29 +34,51 @@ export default function EmployeesPage() {
   });
 
   const { data: shifts } = useQuery({ queryKey: ['shifts'], queryFn: shiftsApi.list });
-  const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: departmentsApi.list });
+  useQuery({ queryKey: ['departments'], queryFn: departmentsApi.list });
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
-  const createMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: (d: any) =>
       editEmployee ? employeesApi.update(editEmployee.id, d) : employeesApi.create(d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       toast.success(editEmployee ? 'Employee updated' : 'Employee created & queued for device sync');
-      setShowModal(false);
+      setShowForm(false);
       setEditEmployee(null);
       reset();
     },
     onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => employeesApi.remove(id),
+  const activateMutation = useMutation({
+    mutationFn: (id: string) => employeesApi.activate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee activated and queued for device sync');
+      setActionModal(null);
+    },
+    onError: () => toast.error('Failed to activate employee'),
+  });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => employeesApi.deactivate(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       toast.success('Employee deactivated');
+      setActionModal(null);
     },
+    onError: () => toast.error('Failed to deactivate employee'),
+  });
+
+  const terminateMutation = useMutation({
+    mutationFn: (id: string) => employeesApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      toast.success('Employee terminated and removed from devices');
+      setActionModal(null);
+    },
+    onError: () => toast.error('Failed to terminate employee'),
   });
 
   const openEdit = (emp: any) => {
@@ -61,15 +91,18 @@ export default function EmployeesPage() {
       phone: emp.phone,
       designation: emp.designation,
       shiftId: emp.shiftId,
+      joiningDate: emp.joiningDate,
     });
-    setShowModal(true);
+    setShowForm(true);
   };
 
   const openCreate = () => {
     setEditEmployee(null);
     reset({});
-    setShowModal(true);
+    setShowForm(true);
   };
+
+  const isBusy = activateMutation.isPending || deactivateMutation.isPending || terminateMutation.isPending;
 
   return (
     <div>
@@ -115,7 +148,7 @@ export default function EmployeesPage() {
                   </td></tr>
                 )}
                 {data?.data?.map((emp: any) => (
-                  <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={emp.id} className={cn('hover:bg-gray-50/50 transition-colors', emp.status === 'terminated' && 'opacity-60')}>
                     <td className="table-cell">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-medium shrink-0">
@@ -139,23 +172,48 @@ export default function EmployeesPage() {
                     <td className="table-cell"><Badge status={emp.status} /></td>
                     <td className="table-cell">{formatDate(emp.joiningDate)}</td>
                     <td className="table-cell">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        {/* Edit — always available */}
                         <button
+                          title="Edit"
                           className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                           onClick={() => openEdit(emp)}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          onClick={() => {
-                            if (confirm(`Deactivate ${emp.firstName} ${emp.lastName}?`)) {
-                              deleteMutation.mutate(emp.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+
+                        {/* Activate — shown when inactive or terminated */}
+                        {(emp.status === 'inactive' || emp.status === 'terminated') && (
+                          <button
+                            title="Activate"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            onClick={() => setActionModal({ type: 'activate', emp })}
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Deactivate — shown when active */}
+                        {emp.status === 'active' && (
+                          <button
+                            title="Deactivate"
+                            className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                            onClick={() => setActionModal({ type: 'deactivate', emp })}
+                          >
+                            <UserX className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Terminate — shown when not already terminated */}
+                        {emp.status !== 'terminated' && (
+                          <button
+                            title="Terminate"
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            onClick={() => setActionModal({ type: 'terminate', emp })}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -184,18 +242,18 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add / Edit Modal */}
       <Modal
-        open={showModal}
-        onClose={() => { setShowModal(false); setEditEmployee(null); reset(); }}
+        open={showForm}
+        onClose={() => { setShowForm(false); setEditEmployee(null); reset(); }}
         title={editEmployee ? 'Edit Employee' : 'Add Employee'}
         size="lg"
       >
-        <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+        <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">Employee Code *</label>
-              <input className="input" placeholder="EMP-001" {...register('employeeCode', { required: true })} />
+              <input className={cn('input', errors.employeeCode && 'border-red-400')} placeholder="EMP-001" {...register('employeeCode', { required: true })} />
             </div>
             <div>
               <label className="label">Designation</label>
@@ -203,11 +261,11 @@ export default function EmployeesPage() {
             </div>
             <div>
               <label className="label">First Name *</label>
-              <input className="input" {...register('firstName', { required: true })} />
+              <input className={cn('input', errors.firstName && 'border-red-400')} {...register('firstName', { required: true })} />
             </div>
             <div>
               <label className="label">Last Name *</label>
-              <input className="input" {...register('lastName', { required: true })} />
+              <input className={cn('input', errors.lastName && 'border-red-400')} {...register('lastName', { required: true })} />
             </div>
             <div>
               <label className="label">Email</label>
@@ -243,21 +301,114 @@ export default function EmployeesPage() {
               </>
             )}
           </div>
-
           {!editEmployee && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-              <strong>Note:</strong> Fingerprints must be enrolled directly on the device.
-              This employee will be created as "Pending Biometric".
-            </div>
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <strong>Note:</strong> Fingerprints must be enrolled directly on the device. This employee will start as "Pending Biometric".
+            </p>
           )}
-
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
-              {createMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : editEmployee ? 'Update' : 'Create & Sync'}
+            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : editEmployee ? 'Update' : 'Create & Sync'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Activate Modal */}
+      <Modal
+        open={actionModal?.type === 'activate'}
+        onClose={() => setActionModal(null)}
+        title="Activate Employee"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <UserCheck className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">{actionModal?.emp?.firstName} {actionModal?.emp?.lastName}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                This will set the employee's status to <strong>Active</strong> and re-sync them to all connected devices.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button className="btn-secondary" onClick={() => setActionModal(null)}>Cancel</button>
+            <button
+              className="btn-primary"
+              disabled={isBusy}
+              onClick={() => activateMutation.mutate(actionModal?.emp?.id)}
+            >
+              {isBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Activating…</> : 'Activate'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Deactivate Modal */}
+      <Modal
+        open={actionModal?.type === 'deactivate'}
+        onClose={() => setActionModal(null)}
+        title="Deactivate Employee"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center shrink-0">
+              <UserX className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">{actionModal?.emp?.firstName} {actionModal?.emp?.lastName}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                This will set the employee to <strong>Inactive</strong>. They will not be able to log in and attendance will not be tracked. You can reactivate them at any time.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button className="btn-secondary" onClick={() => setActionModal(null)}>Cancel</button>
+            <button
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              disabled={isBusy}
+              onClick={() => deactivateMutation.mutate(actionModal?.emp?.id)}
+            >
+              {isBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Deactivating…</> : 'Deactivate'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Terminate Modal */}
+      <Modal
+        open={actionModal?.type === 'terminate'}
+        onClose={() => setActionModal(null)}
+        title="Terminate Employee"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">{actionModal?.emp?.firstName} {actionModal?.emp?.lastName}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                This will permanently set the employee to <strong>Terminated</strong> and remove them from all connected biometric devices. Their attendance history will be preserved.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button className="btn-secondary" onClick={() => setActionModal(null)}>Cancel</button>
+            <button
+              className="btn-danger"
+              disabled={isBusy}
+              onClick={() => terminateMutation.mutate(actionModal?.emp?.id)}
+            >
+              {isBusy ? <><Loader2 className="w-4 h-4 animate-spin" /> Terminating…</> : 'Terminate'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

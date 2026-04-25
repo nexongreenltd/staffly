@@ -50,7 +50,7 @@ export class EmployeesService {
 
     // Optionally create login account
     if (dto.password && dto.email) {
-      const user = await this.usersService.createUser({
+      await this.usersService.createUser({
         companyId,
         employeeId: employee.id,
         email: dto.email,
@@ -123,15 +123,35 @@ export class EmployeesService {
     return this.findOne(companyId, id);
   }
 
+  async activate(companyId: string, id: string) {
+    await this.findOne(companyId, id); // validates exists
+    await this.employeeRepo.update({ id, companyId }, { status: EmployeeStatus.ACTIVE });
+    try {
+      await this.deviceSyncProducer.addPushUserJob(companyId, id);
+    } catch (err) {
+      this.logger.warn(`Could not queue device sync on activate for ${id}: ${(err as Error).message}`);
+    }
+    return this.findOne(companyId, id);
+  }
+
+  async deactivate(companyId: string, id: string) {
+    await this.findOne(companyId, id); // validates exists
+    await this.employeeRepo.update({ id, companyId }, { status: EmployeeStatus.INACTIVE });
+    return this.findOne(companyId, id);
+  }
+
   async remove(companyId: string, id: string) {
-    const employee = await this.findOne(companyId, id);
+    await this.findOne(companyId, id);
     await this.employeeRepo.update(
       { id, companyId },
       { status: EmployeeStatus.TERMINATED, biometricStatus: BiometricStatus.DISABLED },
     );
-    // Queue removal from devices
-    await this.deviceSyncProducer.addDeleteUserJob(companyId, id);
-    return { message: 'Employee deactivated and removal queued on devices' };
+    try {
+      await this.deviceSyncProducer.addDeleteUserJob(companyId, id);
+    } catch (err) {
+      this.logger.warn(`Could not queue device removal for ${id}: ${(err as Error).message}`);
+    }
+    return { message: 'Employee terminated and removal queued on devices' };
   }
 
   async getDeviceMappings(companyId: string, employeeId: string) {

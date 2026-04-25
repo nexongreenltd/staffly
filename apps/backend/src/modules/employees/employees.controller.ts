@@ -66,9 +66,23 @@ export class EmployeesController {
     return this.svc.update(companyId, id, dto);
   }
 
+  @Patch(':id/activate')
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Activate employee and re-sync to devices' })
+  activate(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.svc.activate(companyId, id);
+  }
+
+  @Patch(':id/deactivate')
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Deactivate employee (reversible)' })
+  deactivate(@CompanyId() companyId: string, @Param('id') id: string) {
+    return this.svc.deactivate(companyId, id);
+  }
+
   @Delete(':id')
   @Roles(UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
-  @ApiOperation({ summary: 'Deactivate employee and remove from devices' })
+  @ApiOperation({ summary: 'Terminate employee and remove from devices' })
   remove(@CompanyId() companyId: string, @Param('id') id: string) {
     return this.svc.remove(companyId, id);
   }

@@ -46,6 +46,8 @@ export const employeesApi = {
   update: (id: string, data: any) =>
     api.patch(`/employees/${id}`, data).then((r) => r.data),
   remove: (id: string) => api.delete(`/employees/${id}`).then((r) => r.data),
+  activate: (id: string) => api.patch(`/employees/${id}/activate`).then((r) => r.data),
+  deactivate: (id: string) => api.patch(`/employees/${id}/deactivate`).then((r) => r.data),
   getDeviceMappings: (id: string) =>
     api.get(`/employees/${id}/device-mappings`).then((r) => r.data),
 };
