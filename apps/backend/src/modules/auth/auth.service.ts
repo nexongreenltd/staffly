@@ -46,6 +46,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       companyId: user.companyId,
+      employeeId: user.employeeId ?? null,
     };
 
     await this.auditRepo.save({

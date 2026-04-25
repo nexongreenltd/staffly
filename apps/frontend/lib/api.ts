@@ -90,6 +90,19 @@ export const departmentsApi = {
   create: (name: string) => api.post('/departments', { name }).then((r) => r.data),
 };
 
+// ─── My Attendance (Employee Self-Service) ────────────────────────────────────
+export const myAttendanceApi = {
+  daily: (date: string, page = 1, limit = 30) =>
+    api.get('/attendance/my/daily', { params: { date, page, limit } }).then((r) => r.data),
+  monthly: (year: number, month: number) =>
+    api.get('/attendance/my/monthly', { params: { year, month } }).then((r) => r.data),
+};
+
+// ─── My Profile (Employee Self-Service) ──────────────────────────────────────
+export const myProfileApi = {
+  get: () => api.get('/employees/me').then((r) => r.data),
+};
+
 // ─── Superadmin ───────────────────────────────────────────────────────────────
 export const superadminApi = {
   stats: () => api.get('/superadmin/stats').then((r) => r.data),

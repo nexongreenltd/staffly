@@ -99,6 +99,45 @@ export class AttendanceController {
     return this.svc.processLogsForDate(companyId, date);
   }
 
+  // ─── Employee Self-Service ────────────────────────────────────────────────────
+
+  @Get('my/daily')
+  @Roles(UserRole.EMPLOYEE, UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Get my own daily attendance' })
+  @ApiQuery({ name: 'date', required: true, description: 'YYYY-MM-DD' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getMyDaily(
+    @CurrentUser() user: any,
+    @Query('date') date: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 30,
+  ) {
+    return this.svc.getDailyAttendance(user.companyId, {
+      date,
+      employeeId: user.employeeId,
+      page: +page,
+      limit: +limit,
+    });
+  }
+
+  @Get('my/monthly')
+  @Roles(UserRole.EMPLOYEE, UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Get my own monthly attendance report' })
+  @ApiQuery({ name: 'year', required: true })
+  @ApiQuery({ name: 'month', required: true })
+  getMyMonthly(
+    @CurrentUser() user: any,
+    @Query('year') year: number,
+    @Query('month') month: number,
+  ) {
+    return this.svc.getMonthlyReport(user.companyId, {
+      year: +year,
+      month: +month,
+      employeeId: user.employeeId,
+    });
+  }
+
   @Post('correct/:employeeId/:date')
   @Roles(UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
   @ApiOperation({ summary: 'Manual attendance correction' })

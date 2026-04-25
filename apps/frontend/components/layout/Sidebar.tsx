@@ -4,18 +4,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Monitor, CalendarCheck, Clock,
-  LogOut, Fingerprint, ChevronRight,
+  LogOut, Fingerprint, ChevronRight, UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { clearAuth, getUser } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
 const ALL_NAV = [
-  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard, roles: ['company_admin', 'employee'] },
-  { href: '/employees',  label: 'Employees',  icon: Users,           roles: ['company_admin'] },
-  { href: '/devices',    label: 'Devices',    icon: Monitor,         roles: ['company_admin'] },
-  { href: '/attendance', label: 'Attendance', icon: CalendarCheck,   roles: ['company_admin', 'employee'] },
-  { href: '/shifts',     label: 'Shifts',     icon: Clock,           roles: ['company_admin'] },
+  { href: '/dashboard',     label: 'Dashboard',    icon: LayoutDashboard, roles: ['company_admin', 'employee'] },
+  { href: '/employees',     label: 'Employees',    icon: Users,           roles: ['company_admin'] },
+  { href: '/devices',       label: 'Devices',      icon: Monitor,         roles: ['company_admin'] },
+  { href: '/attendance',    label: 'Attendance',   icon: CalendarCheck,   roles: ['company_admin'] },
+  { href: '/shifts',        label: 'Shifts',       icon: Clock,           roles: ['company_admin'] },
+  { href: '/my-attendance', label: 'My Attendance', icon: CalendarCheck,  roles: ['employee'] },
+  { href: '/my-profile',    label: 'My Profile',   icon: UserCircle,      roles: ['employee'] },
 ];
 
 export function Sidebar() {

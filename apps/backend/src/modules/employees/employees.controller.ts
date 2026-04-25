@@ -8,7 +8,7 @@ import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/create-employee.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CompanyId } from '../../common/decorators/company.decorator';
+import { CompanyId, CurrentUser } from '../../common/decorators/company.decorator';
 import { UserRole, EmployeeStatus } from '../../common/enums';
 
 @ApiTags('Employees')
@@ -41,6 +41,13 @@ export class EmployeesController {
     @Query('departmentId') departmentId?: string,
   ) {
     return this.svc.findAll(companyId, { page: +page, limit: +limit, status, search, departmentId });
+  }
+
+  @Get('me')
+  @Roles(UserRole.EMPLOYEE, UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN)
+  @ApiOperation({ summary: 'Get my own employee profile' })
+  getMe(@CurrentUser() user: any) {
+    return this.svc.findOne(user.companyId, user.employeeId);
   }
 
   @Get(':id')
