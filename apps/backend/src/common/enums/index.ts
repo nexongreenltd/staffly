@@ -32,6 +32,19 @@ export enum AttendanceStatus {
   ON_LEAVE = 'on_leave',
 }
 
+export enum LeaveType {
+  CASUAL = 'casual',
+  SICK = 'sick',
+  ANNUAL = 'annual',
+  UNPAID = 'unpaid',
+}
+
+export enum LeaveStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 export enum PunchType {
   CHECK_IN = 0,
   CHECK_OUT = 1,

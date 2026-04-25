@@ -14,6 +14,8 @@ import { QueueModule } from './modules/queue/queue.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { HealthModule } from './modules/health/health.module';
 import { SuperadminModule } from './modules/superadmin/superadmin.module';
+import { HolidaysModule } from './modules/holidays/holidays.module';
+import { LeavesModule } from './modules/leaves/leaves.module';
 
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { Company } from './database/entities/company.entity';
@@ -63,6 +65,8 @@ import { Company } from './database/entities/company.entity';
     DepartmentsModule,
     HealthModule,
     SuperadminModule,
+    HolidaysModule,
+    LeavesModule,
   ],
 })
 export class AppModule {

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { format, startOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { Download, Search, Filter, Loader2, Pencil } from 'lucide-react';
+import { Download, Loader2, Pencil } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
@@ -18,11 +18,10 @@ export default function AttendancePage() {
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [correctModal, setCorrectModal] = useState<any>(null);
-  const [correctionForm, setCorrectionForm] = useState({ checkIn: '', checkOut: '', reason: '' });
+  const [correctionForm, setCorrectionForm] = useState({ checkIn: '', checkOut: '', status: '', reason: '' });
 
   const dailyQuery = useQuery({
     queryKey: ['attendance-daily', date, statusFilter, page],
@@ -47,6 +46,7 @@ export default function AttendancePage() {
       attendanceApi.correct(d.employeeId, d.date, {
         checkIn: d.checkIn || undefined,
         checkOut: d.checkOut || undefined,
+        status: d.status || undefined,
         reason: d.reason,
       }),
     onSuccess: () => {
@@ -200,6 +200,7 @@ export default function AttendancePage() {
                             setCorrectionForm({
                               checkIn: rec.checkIn ? format(new Date(rec.checkIn), "yyyy-MM-dd'T'HH:mm") : '',
                               checkOut: rec.checkOut ? format(new Date(rec.checkOut), "yyyy-MM-dd'T'HH:mm") : '',
+                              status: rec.status || '',
                               reason: '',
                             });
                           }}
@@ -286,6 +287,19 @@ export default function AttendancePage() {
               value={correctionForm.checkOut}
               onChange={(e) => setCorrectionForm((p) => ({ ...p, checkOut: e.target.value }))}
             />
+          </div>
+          <div>
+            <label className="label">Override Status</label>
+            <select
+              className="input"
+              value={correctionForm.status}
+              onChange={(e) => setCorrectionForm((p) => ({ ...p, status: e.target.value }))}
+            >
+              <option value="">Auto-calculate from times</option>
+              {['present', 'late', 'absent', 'half_day', 'on_leave', 'holiday'].map((s) => (
+                <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="label">Reason *</label>

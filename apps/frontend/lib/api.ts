@@ -103,6 +103,33 @@ export const myProfileApi = {
   get: () => api.get('/employees/me').then((r) => r.data),
 };
 
+// ─── Holidays ─────────────────────────────────────────────────────────────────
+export const holidaysApi = {
+  list: (year?: number) =>
+    api.get('/holidays', { params: year ? { year } : {} }).then((r) => r.data),
+  create: (data: { date: string; name: string; description?: string }) =>
+    api.post('/holidays', data).then((r) => r.data),
+  remove: (id: string) => api.delete(`/holidays/${id}`).then((r) => r.data),
+};
+
+// ─── Leaves ───────────────────────────────────────────────────────────────────
+export const leavesApi = {
+  list: (params?: Record<string, any>) =>
+    api.get('/leaves', { params }).then((r) => r.data),
+  approve: (id: string, reviewNote?: string) =>
+    api.patch(`/leaves/${id}/approve`, { reviewNote }).then((r) => r.data),
+  reject: (id: string, reviewNote?: string) =>
+    api.patch(`/leaves/${id}/reject`, { reviewNote }).then((r) => r.data),
+};
+
+// ─── My Leaves (Employee Self-Service) ───────────────────────────────────────
+export const myLeavesApi = {
+  list: (page = 1) => api.get('/leaves/my', { params: { page } }).then((r) => r.data),
+  create: (data: { startDate: string; endDate: string; leaveType: string; reason: string }) =>
+    api.post('/leaves', data).then((r) => r.data),
+  cancel: (id: string) => api.delete(`/leaves/${id}`).then((r) => r.data),
+};
+
 // ─── Superadmin ───────────────────────────────────────────────────────────────
 export const superadminApi = {
   stats: () => api.get('/superadmin/stats').then((r) => r.data),
