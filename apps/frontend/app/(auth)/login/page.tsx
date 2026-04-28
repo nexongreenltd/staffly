@@ -10,7 +10,6 @@ import { Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { authApi } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
-import robotAnimation from '@/lib/robot-animation.json';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -112,8 +111,14 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const [animationData, setAnimationData] = useState<object | null>(null);
+
+  useEffect(() => {
+    fetch('/robot-animation.json')
+      .then((r) => r.json())
+      .then(setAnimationData)
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -243,9 +248,9 @@ export default function LoginPage() {
                               w-40 h-5 rounded-full bg-brand-900/40 blur-md" />
 
               <div className="lp-robot-idle w-72 h-72">
-                {mounted && (
+                {animationData && (
                   <Lottie
-                    animationData={robotAnimation}
+                    animationData={animationData}
                     loop
                     className="w-full h-full"
                   />
