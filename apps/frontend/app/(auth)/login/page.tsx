@@ -10,7 +10,7 @@ import { Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { authApi } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
-import robotAnimation from '@/assets/robot-animation.json';
+import robotAnimation from '@/lib/robot-animation.json';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
