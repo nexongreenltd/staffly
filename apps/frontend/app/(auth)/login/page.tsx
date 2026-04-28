@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { authApi } from '@/lib/api';
 import { saveAuth } from '@/lib/auth';
+import robotAnimation from './robot-animation.json';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -111,14 +112,6 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  const [animationData, setAnimationData] = useState<object | null>(null);
-
-  useEffect(() => {
-    fetch('/robot-animation.json')
-      .then((r) => r.json())
-      .then(setAnimationData)
-      .catch(() => {});
-  }, []);
 
   return (
     <>
@@ -248,13 +241,11 @@ export default function LoginPage() {
                               w-40 h-5 rounded-full bg-brand-900/40 blur-md" />
 
               <div className="lp-robot-idle w-72 h-72">
-                {animationData && (
-                  <Lottie
-                    animationData={animationData}
-                    loop
-                    className="w-full h-full"
-                  />
-                )}
+                <Lottie
+                  animationData={robotAnimation}
+                  loop
+                  className="w-full h-full"
+                />
               </div>
             </div>
 
